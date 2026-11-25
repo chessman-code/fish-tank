@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>养的鱼不一样 · MY FISH ARE DIFFERENT</title>
+<style>
+:root{
+  --cyan:#38e1ff; --pink:#ff5da2; --gold:#ffd166;
+  --panel:rgba(5,18,38,.94); --border:#2f6f9f; --ink:#dff6ff;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#030a18}
+body{font-family:"Microsoft YaHei","PingFang SC","Noto Sans SC",sans-serif;color:var(--ink);user-select:none;-webkit-user-select:none}
+#stage{position:fixed;inset:0}
+#tank{position:absolute;inset:0;display:block;cursor:crosshair}
+#stage.shake{animation:shake .35s linear}
+@keyframes shake{
+  0%,100%{transform:translate(0,0)}
+  15%{transform:translate(-7px,3px)}30%{transform:translate(6px,-4px)}
+  45%{transform:translate(-5px,-3px)}60%{transform:translate(5px,4px)}
+  75%{transform:translate(-3px,1px)}90%{transform:translate(2px,-2px)}
+}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:5;
+  background:
+    repeating-linear-gradient(0deg,rgba(0,0,0,.13) 0 1px,transparent 1px 3px),
+    radial-gradient(ellipse at center,transparent 55%,rgba(1,6,18,.55) 100%);
+}
+/* ---------- HUD ---------- */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;font-weight:700}
+#hud .clickable{pointer-events:auto}
+#hud.hidden{display:none}
+#brand{position:absolute;top:12px;left:14px;line-height:1.3}
+#brand h1{font-size:21px;letter-spacing:3px;color:#fff;
+  text-shadow:0 0 10px rgba(56,225,255,.9),0 0 26px rgba(56,225,255,.45),2px 2px 0 #062a4a}
+#brand small{display:block;font-size:9px;letter-spacing:4px;color:#5ec8ff;opacity:.9}
+#stats{position:absolute;top:12px;right:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.chip{background:var(--panel);border:2px solid var(--border);box-shadow:3px 3px 0 rgba(0,0,0,.55);
+  padding:5px 10px;font-size:13px;letter-spacing:1px;color:#bfeaff}
+.chip b{color:var(--gold);font-size:15px;margin-left:4px}
+.chip.cyan b{color:var(--cyan)}
+#toasts{position:absolute;top:64px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:8px;align-items:center;width:92%;max-width:440px}
+.toast{background:var(--panel);border:2px solid var(--cyan);box-shadow:3px 3px 0 rgba(0,0,0,.55),0 0 14px rgba(56,225,255,.35);
+  padding:8px 16px;font-size:14px;color:#eaffff;animation:toastin .25s ease-out;text-align:center}
+.toast.gold{border-color:var(--gold);box-shadow:3px 3px 0 rgba(0,0,0,.55),0 0 14px rgba(255,209,102,.4)}
+.toast.pink{border-color:var(--pink);box-shadow:3px 3px 0 rgba(0,0,0,.55),0 0 14px rgba(255,93,162,.4)}
+.toast.out{animation:toastout .3s forwards}
+@keyframes toastin{from{opacity:0;transform:translateY(-10px) scale(.92)}to{opacity:1;transform:none}}
+@keyframes toastout{to{opacity:0;transform:translateY(-8px)}}
+#hint{position:absolute;bottom:64px;width:100%;text-align:center;font-size:11px;letter-spacing:2px;color:#6fb9e8;opacity:.85;text-shadow:1px 1px 0 #04101f;padding:0 8px}
+#bottombar{position:absolute;bottom:12px;width:100%;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;padding:0 10px}
+.pxbtn{pointer-events:auto;background:#07294d;border:3px solid #2f80b8;color:#c9f2ff;
+  box-shadow:0 4px 0 #041a33,0 0 12px rgba(56,225,255,.22);font-size:14px;font-weight:800;
+  letter-spacing:2px;padding:9px 16px;cursor:pointer;font-family:inherit;transition:transform .05s}
+.pxbtn:active{transform:translateY(3px);box-shadow:0 1px 0 #041a33}
+.pxbtn.warn{border-color:#b8536f;box-shadow:0 4px 0 #330f1c,0 0 12px rgba(255,93,162,.25);color:#ffd7e6}
+.pxbtn:disabled{opacity:.4;cursor:not-allowed}
+#credit{position:absolute;bottom:14px;right:14px;font-size:10px;letter-spacing:1px;color:#3d6f9b}
+/* ---------- 鱼档案 ---------- */
+#fishcard{position:absolute;left:12px;bottom:96px;width:252px;background:var(--panel);
+  border:3px solid var(--border);box-shadow:4px 4px 0 rgba(0,0,0,.6);padding:12px;display:none}
+#fishcard.show{display:block;animation:toastin .2s}
+#fishcard h3{font-size:16px;color:#fff;letter-spacing:1px;margin-bottom:2px}
+#fishcard .sub{font-size:11px;color:#79b8dd;margin-bottom:8px}
+.barwrap{height:12px;background:#061a30;border:2px solid #14456b;margin:5px 0 9px;position:relative;overflow:hidden}
+.barwrap .fill{position:absolute;inset:0;transform-origin:left;background:linear-gradient(90deg,#19c37d,#7ef0b0)}
+.barwrap .fill.mid{background:linear-gradient(90deg,#d9a514,#ffe28a)}
+.barwrap .fill.low{background:linear-gradient(90deg,#d63b4f,#ff8fa0)}
+.barlabel{display:flex;justify-content:space-between;font-size:11px;color:#8ecdf0}
+#fishcard .row{display:flex;gap:6px;margin-top:4px}
+#fishcard input{flex:1;min-width:0;background:#061a30;border:2px solid #14456b;color:#dff6ff;
+  padding:6px 8px;font-size:13px;font-family:inherit;font-weight:700}
+#fishcard input:focus{outline:none;border-color:var(--cyan)}
+.pxbtn.small{font-size:12px;padding:6px 10px;letter-spacing:1px}
+#releaseBtn{width:100%;margin-top:8px}
+/* ---------- 商店 ---------- */
+#shopwrap{position:fixed;inset:0;z-index:20;background:rgba(2,7,18,.72);display:none;align-items:center;justify-content:center;padding:14px}
+#shopwrap.show{display:flex}
+#shop{background:#06183a;border:4px solid #2f80b8;box-shadow:0 0 24px rgba(56,225,255,.25),8px 8px 0 rgba(0,0,0,.5);
+  width:100%;max-width:620px;max-height:86vh;display:flex;flex-direction:column;padding:16px}
+#shop header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex:none}
+#shop header h2{font-size:18px;letter-spacing:3px;color:#fff;text-shadow:0 0 8px rgba(56,225,255,.7)}
+#shop header .right{display:flex;gap:10px;align-items:center}
+#shop header .coins{font-size:14px;color:var(--gold)}
+#filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;flex:none}
+.fchip{pointer-events:auto;background:#04122b;border:2px solid #1c4e78;color:#7db6d9;font-size:12px;font-weight:700;
+  padding:4px 10px;cursor:pointer;font-family:inherit}
+.fchip.sel{border-color:var(--cyan);color:#fff;background:#073058}
+#shoplist{overflow-y:auto;display:flex;flex-direction:column;gap:7px;padding-right:4px}
+.srow{display:flex;align-items:center;gap:12px;background:#04122b;border:2px solid #1c4e78;padding:8px 10px}
+.srow .kj{font-size:22px;font-weight:700;min-width:86px;text-align:center;font-family:"Segoe UI Symbol","Segoe UI","Microsoft YaHei",sans-serif;text-shadow:0 0 10px currentColor}
+.srow .info{flex:1;min-width:0}
+.srow .nm{font-size:14px;color:#fff}
+.srow .nm em{font-style:normal;font-size:10px;color:#5a8cb5;margin-left:6px}
+.srow .ds{font-size:11px;color:#7db6d9;line-height:1.35;margin-top:1px}
+.srow .buy{flex:none;text-align:right}
+.srow .pr{color:var(--gold);font-size:14px;font-weight:800;margin-bottom:4px}
+@media (max-width:520px){
+  #brand h1{font-size:16px;letter-spacing:1px}
+  #brand small{font-size:8px}
+  .chip{font-size:11px;padding:4px 7px}
+  #fishcard{left:8px;right:8px;width:auto;bottom:92px}
+  #hint{display:none}
+  .srow .kj{font-size:16px;min-width:64px}
+}
+/* ---------- 登录 ---------- */
+#login{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;padding:16px;
+  background:radial-gradient(ellipse at center,rgba(3,12,30,.55) 0%,rgba(2,6,16,.88) 100%)}
+#login.hide{display:none}
+#loginbox{width:100%;max-width:360px;background:var(--panel);border:4px solid #2f80b8;
+  box-shadow:0 0 26px rgba(56,225,255,.3),8px 8px 0 rgba(0,0,0,.5);padding:26px 26px 22px}
+#loginbox h1{font-size:24px;letter-spacing:3px;color:#fff;text-align:center;
+  text-shadow:0 0 12px rgba(56,225,255,.9),2px 2px 0 #062a4a}
+#loginbox .sub{font-size:9px;letter-spacing:5px;color:#5ec8ff;text-align:center;margin:6px 0 18px}
+#tabs{display:flex;gap:8px;margin-bottom:16px}
+#tabs button{flex:1;background:#04122b;border:2px solid #1c4e78;color:#7db6d9;font-size:14px;font-weight:800;
+  letter-spacing:3px;padding:9px 0;cursor:pointer;font-family:inherit}
+#tabs button.sel{border-color:var(--cyan);color:#fff;background:#073058;box-shadow:0 0 10px rgba(56,225,255,.3)}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:11px;letter-spacing:2px;color:#6fa8cc;margin-bottom:5px}
+.field input{width:100%;background:#061a30;border:2px solid #14456b;color:#dff6ff;padding:10px 10px;
+  font-size:14px;font-family:inherit;font-weight:700;letter-spacing:1px}
+.field input:focus{outline:none;border-color:var(--cyan);box-shadow:0 0 8px rgba(56,225,255,.3)}
+#loginErr{display:none;background:#3a0f1c;border:2px solid #b8536f;color:#ffd7e6;font-size:12px;
+  padding:7px 10px;margin-bottom:12px;line-height:1.4}
+#loginSubmit{width:100%;font-size:15px;letter-spacing:4px;margin-top:4px}
+#loginTip{font-size:11px;color:#5a8cb5;text-align:center;margin-top:14px;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="tank"></canvas></div>
+<div id="fx"></div>
+
+<!-- 登录界面 -->
+<div id="login">
+  <div id="loginbox">
+    <h1>养的鱼不一样</h1>
+    <div class="sub">MY FISH ARE DIFFERENT</div>
+    <div id="tabs">
+      <button id="tabLogin" class="sel">登 录</button>
+      <button id="tabReg">注 册</button>
+    </div>
+    <div class="field"><label>用户名</label><input id="inUser" maxlength="16" placeholder="2-16 位，中文/字母/数字"></div>
+    <div class="field"><label>手机号</label><input id="inPhone" maxlength="11" placeholder="11 位手机号" inputmode="numeric"></div>
+    <div class="field"><label>密码</label><input id="inPass" type="password" maxlength="32" placeholder="6-32 位"></div>
+    <div id="loginErr"></div>
+    <button class="pxbtn" id="loginSubmit">进入鱼缸</button>
+    <div id="loginTip">同一网络的小伙伴同时在线时，鱼儿可能互相串门哦</div>
+  </div>
+</div>
+
+<!-- 游戏界面 -->
+<div id="hud" class="hidden">
+  <div id="brand"><h1>养的鱼不一样</h1><small>MY&nbsp;FISH&nbsp;ARE&nbsp;DIFFERENT</small></div>
+  <div id="stats">
+    <div class="chip cyan">鱼<b id="stFish">0</b></div>
+    <div class="chip">鱼粮币<b id="stCoin">0</b></div>
+    <div class="chip">陪伴<b id="stDay">第1天</b></div>
+    <div class="chip" id="stNeighborChip">邻居<b id="stNeighbor">0</b></div>
+  </div>
+  <div id="toasts"></div>
+  <div id="hint">点击水面撒鱼粮 · 双击屏幕敲鱼缸 · 点击鱼儿看档案 · 同一网络的鱼会串门</div>
+  <div id="bottombar">
+    <button class="pxbtn clickable" id="shopBtn">商店</button>
+    <button class="pxbtn clickable warn" id="knockBtn">敲缸</button>
+    <button class="pxbtn clickable" id="muteBtn">音效:开</button>
+    <button class="pxbtn clickable warn" id="logoutBtn">退出</button>
+  </div>
+  <div id="credit">养的鱼不一样 · YU BU YI YANG v2.0</div>
+
+  <div id="fishcard" class="clickable">
+    <h3 id="fcName">鱼儿</h3>
+    <div class="sub" id="fcSub">微笑鱼 · 成年</div>
+    <div class="barlabel"><span>饱食度</span><span id="fcSatT">80%</span></div>
+    <div class="barwrap"><div class="fill" id="fcSat"></div></div>
+    <div class="barlabel"><span>成长</span><span id="fcExpT">12/45</span></div>
+    <div class="barwrap"><div class="fill" id="fcExp" style="background:linear-gradient(90deg,#1e9bd6,#7ad9ff)"></div></div>
+    <div class="sub" id="fcBorn">已陪伴 1 天</div>
+    <div class="row">
+      <input id="fcInput" maxlength="8" placeholder="给TA改个名字">
+      <button class="pxbtn small" id="fcSave">改名</button>
+    </div>
+    <button class="pxbtn small warn" id="releaseBtn">放生</button>
+  </div>
+
+  <div id="shopwrap" class="clickable">
+    <div id="shop">
+      <header>
+        <h2>鱼苗商店 · 50 种颜文字鱼</h2>
+        <div class="right">
+          <div class="coins">鱼粮币 <b id="shopCoin">0</b></div>
+          <button class="pxbtn small" id="shopClose">关闭</button>
+        </div>
+      </header>
+      <div id="filters"></div>
+      <div id="shoplist"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+'use strict';
+/* ================= 工具 ================= */
+const rand=(a,b)=>a+Math.random()*(b-a);
+const irand=(a,b)=>Math.floor(rand(a,b+1));
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const dist=(x1,y1,x2,y2)=>Math.hypot(x2-x1,y2-y1);
+const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+const $=id=>document.getElementById(id);
+
+/* ================= 音效（8bit 合成器） ================= */
+let actx=null,muted=false;
+function ac(){if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}return actx}
+function tone(f,d,type,v,slide){
+  if(muted)return;const a=ac();if(!a)return;
+  if(a.state==='suspended')a.resume();
+  try{
+    const o=a.createOscillator(),g=a.createGain();
+    o.type=type||'square';o.frequency.value=f;
+    if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),a.currentTime+d);
+    g.gain.setValueAtTime(v||.1,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);
+    o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d+.02);
+  }catch(e){}
+}
+const sfx={
+  feed(){tone(520,.07,'square',.09);setTimeout(()=>tone(780,.07,'square',.09),60)},
+  eat(){tone(880,.06,'square',.08);setTimeout(()=>tone(1180,.08,'square',.07),50)},
+  coin(){tone(1310,.05,'triangle',.1);setTimeout(()=>tone(1760,.1,'triangle',.08),55)},
+  knock(){tone(85,.18,'sawtooth',.22,-40);tone(60,.22,'square',.14)},
+  levelup(){[523,659,784,1046].forEach((f,i)=>setTimeout(()=>tone(f,.12,'square',.09),i*90))},
+  buy(){[392,523,659].forEach((f,i)=>setTimeout(()=>tone(f,.1,'triangle',.1),i*80))},
+  release(){[659,523,392].forEach((f,i)=>setTimeout(()=>tone(f,.12,'triangle',.09),i*90))},
+  visit(){[659,880,1046].forEach((f,i)=>setTimeout(()=>tone(f,.1,'triangle',.08),i*110))},
+  zap(){tone(1600,.12,'sawtooth',.07,-1200)}
+};
+
+/* ============================================================
+ * 50 种颜文字鱼：配色跟随颜文字所代表的情绪
+ * 字段: n名字 k颜文字 c颜色(情绪) cat分类 price价格 sz体型 spd速度 sp特性 d描述
+ * 特性: follow跟着鼠标 / shy怕鼠标 / tears流泪 / hearts冒爱心 /
+ *        sparkle星光 / music音符 / dance摇摆 / dart冲刺 / tremble发抖 /
+ *        nervous紧张 / zen敲缸不跑 / xianyu躺平 / hungry吃货 / sleep瞌睡 /
+ *        crab缸底横行 / jelly水母漂浮 / glow发光 / lightning放电 /
+ *        ghost时隐时现 / puffer敲缸膨胀 / shark吓跑小鱼 / whale巨无霸 /
+ *        lucky吃粮双倍 / flame尾迹带火 / robot直角游 / bubble吐泡泡
+ * ============================================================ */
+const SPECIES={
+weixiao:{n:'微笑鱼',k:'(´◡`)',c:'#ffd166',cat:'开心',price:30,sz:1,spd:70,d:'常年保持微笑，情绪稳定'},
+mimi:{n:'眯眯鱼',k:'(＾▽＾)',c:'#ffe28a',cat:'开心',price:30,sz:1,spd:75,d:'笑到眼睛眯成一条缝'},
+dayan:{n:'大眼鱼',k:'(◉◡◉)',c:'#7ad9ff',cat:'酷酷',price:35,sz:.95,spd:70,d:'眼睛瞪得像铜铃'},
+guaiqiao:{n:'乖巧鱼',k:'(•‿•)',c:'#8ef0d2',cat:'平静',price:35,sz:.95,spd:65,d:'最省心的乖宝宝'},
+jinyu:{n:'金鱼',k:'(◉ᴗ◉)',c:'#ffb347',cat:'开心',price:40,sz:.9,spd:70,d:'经典款，七秒记忆'},
+xixi:{n:'汪汪鱼',k:'ヾ(●ω●)ﾉ',c:'#ffc999',cat:'搞笑',price:45,sz:1,spd:80,sp:'follow',d:'绝对忠诚，会跟着鼠标跑'},
+maomao:{n:'猫猫鱼',k:'(=^･ω･^=)',c:'#ffd9b3',cat:'搞笑',price:45,sz:1,spd:75,d:'猫里猫气，偶尔回头看你'},
+tutu:{n:'兔兔鱼',k:'(｡♥‿♥｡)',c:'#ffc2e0',cat:'恋爱',price:50,sz:.85,spd:70,d:'粉粉嫩嫩小兔鱼'},
+die:{n:'蝶鱼',k:'(◕‿◕)',c:'#a8e6cf',cat:'开心',price:50,sz:.9,spd:65,d:'游起来像在花丛中'},
+haixing:{n:'海星鱼',k:'✧(◔◡◔)✧',c:'#ffd18a',cat:'搞笑',price:55,sz:.85,spd:60,d:'五个角都是快乐的形状'},
+xingyun:{n:'幸运锦鲤',k:'ฅ(＾・ω・＾ฅ)',c:'#ff9f43',cat:'开心',price:60,sz:1.05,spd:70,sp:'lucky',d:'转发这条鱼，好运自然来'},
+weiqu:{n:'委屈鱼',k:'(｡•́︿•̀｡)',c:'#7aa7ff',cat:'伤心',price:60,sz:1,spd:60,d:'看起来受了天大的委屈'},
+lei:{n:'泪目鱼',k:'(；﹏；)',c:'#6fa8ff',cat:'伤心',price:65,sz:1,spd:60,sp:'tears',d:'一直在哭，没人知道为什么'},
+haixiu:{n:'害羞鱼',k:'(//▽//)',c:'#ffb3d1',cat:'搞笑',price:65,sz:.9,spd:75,sp:'shy',d:'见到鼠标就脸红跑开'},
+han:{n:'汗汗鱼',k:'(・・;)',c:'#ffe0a3',cat:'搞笑',price:70,sz:.95,spd:75,sp:'nervous',d:'总感觉有大事要发生'},
+yihuo:{n:'疑惑鱼',k:'(・_・?)',c:'#c9b3ff',cat:'酷酷',price:70,sz:1,spd:65,d:'对一切都充满问号'},
+lengmo:{n:'冷漠鱼',k:'¯\\_(ツ)_/¯',c:'#cfd8dc',cat:'酷酷',price:75,sz:1.1,spd:45,sp:'xianyu',d:'躺平大师，咸鱼本鱼'},
+foxi:{n:'佛系鱼',k:'(－ω－)',c:'#b8e0c8',cat:'平静',price:75,sz:1,spd:35,sp:'zen',d:'泰山崩于前而色不变'},
+meishu:{n:'墨镜鱼',k:'(⌐■_■)',c:'#b0b8ff',cat:'酷酷',price:80,sz:1,spd:70,d:'永远戴着墨镜，深藏功与名'},
+deyi:{n:'得意鱼',k:'(•̀ᴗ•)✧',c:'#ffe066',cat:'开心',price:80,sz:1,spd:75,d:'尾巴翘到天上去了'},
+wuliao:{n:'无聊鱼',k:'(￣o￣)',c:'#d0d8c0',cat:'平静',price:85,sz:1,spd:55,d:'游都懒得游'},
+chihuo:{n:'吃货鱼',k:'(￣﹃￣)',c:'#ffcf6b',cat:'开心',price:85,sz:1.1,spd:85,sp:'hungry',d:'闻到鱼粮就冲刺'},
+tiaowu:{n:'舞舞鱼',k:'ヾ(≧▽≦*)o',c:'#ffcf6b',cat:'开心',price:90,sz:1,spd:80,sp:'dance',d:'自带BGM，随时开跳'},
+jiayou:{n:'加油鱼',k:'(ง •̀_•́)ง',c:'#ff8f6b',cat:'生气',price:90,sz:1.05,spd:80,sp:'dart',d:'间歇性为自己打气冲刺'},
+juzhong:{n:'举重鱼',k:'ᕦ(ò_óˇ)ᕤ',c:'#ffab6b',cat:'生气',price:95,sz:1.15,spd:65,d:'每天举铁，块头不小'},
+aiqiu:{n:'爱心鱼',k:'(♡‿♡)',c:'#ff8fb3',cat:'恋爱',price:100,sz:1,spd:70,sp:'hearts',d:'随时冒爱心，恋爱脑晚期'},
+qinqin:{n:'亲亲鱼',k:'( ˘ ³˘)❤',c:'#ff9ecb',cat:'恋爱',price:100,sz:.95,spd:70,d:'想给它买一支口红'},
+xingxing:{n:'星星鱼',k:'(★‿★)',c:'#ffd700',cat:'开心',price:110,sz:1,spd:70,sp:'sparkle',d:'眼里全是星星'},
+yinyue:{n:'音乐鱼',k:'♪(´▽｀)',c:'#8ad6ff',cat:'开心',price:110,sz:1,spd:75,sp:'music',d:'自带音效，游一路唱一路'},
+jingya:{n:'惊讶鱼',k:'Σ(⊙▽⊙)',c:'#ffb066',cat:'搞笑',price:115,sz:1,spd:75,d:'哇！！对一切都这样'},
+kongbu:{n:'惊恐鱼',k:'((((;゜Д゜)))',c:'#ff9d9d',cat:'搞笑',price:120,sz:1.05,spd:90,sp:'tremble',d:'常年惊恐，瑟瑟发抖'},
+nu:{n:'生气鱼',k:'(╬▔皿▔)',c:'#ff6b6b',cat:'生气',price:120,sz:1.05,spd:85,sp:'dart',d:'别惹它，真的会冲'},
+waimao:{n:'外星鱼',k:'(・(ェ)・)',c:'#a5ff9d',cat:'神秘',price:130,sz:.95,spd:75,d:'来自外太空的神秘访客'},
+robot:{n:'机器人鱼',k:'[・_・?]',c:'#b8c6d9',cat:'酷酷',price:130,sz:1,spd:70,sp:'robot',d:'只走直线和直角弯'},
+haidai:{n:'海带鱼',k:'~~~(◦◡◦)~~~',c:'#7fc99f',cat:'平静',price:135,sz:1.2,spd:50,d:'随波逐流，像根海带'},
+paopao:{n:'泡泡鱼',k:'(ｏ˘◡˘ｏ)',c:'#a3e5ff',cat:'平静',price:135,sz:.9,spd:65,sp:'bubble',d:'吐泡泡小能手'},
+shuimian:{n:'睡觉鱼',k:'(˘ω˘)',c:'#b3c9e0',cat:'平静',price:140,sz:1,spd:30,sp:'sleep',d:'一边游一边睡，头顶zZ'},
+wugui:{n:'乌龟鱼',k:'(▔▀▀▔)',c:'#7fc97f',cat:'平静',price:140,sz:1.1,spd:25,sp:'zen',d:'敲缸？跟它没关系'},
+pangxie:{n:'螃蟹鱼',k:'(\\/)(°﹏°)(\\/)',c:'#ff8c69',cat:'搞笑',price:150,sz:.9,spd:45,sp:'crab',d:'横着走，只能待在缸底'},
+zhangyu:{n:'章鱼鱼',k:'( •̀ ω •́ )✧',c:'#ff9ecf',cat:'恋爱',price:150,sz:1,spd:70,d:'八条胳膊一起比心'},
+shuimu:{n:'水母鱼',k:'(~‾▿‾)~',c:'#c9b3ff',cat:'神秘',price:160,sz:1,spd:35,sp:'jelly',d:'飘来飘去，半透明'},
+denglong:{n:'灯笼鱼',k:'(☼‿☼)',c:'#ffef9f',cat:'神秘',price:170,sz:1,spd:60,sp:'glow',d:'自带光源，照亮一小片海'},
+dianman:{n:'电鳗',k:'⚡(⌐■_■)⚡',c:'#7df9ff',cat:'神秘',price:180,sz:1.2,spd:85,sp:'lightning',d:'高压危险，自带闪电特效'},
+yinhe:{n:'银河鱼',k:'・:*:・(◡‿◡)・:*:・',c:'#b3aaff',cat:'神秘',price:190,sz:1,spd:70,sp:'sparkle',d:'身上有整条银河在闪'},
+hetun:{n:'河豚',k:'( ◕ o ◕ )',c:'#ffd94d',cat:'搞笑',price:200,sz:1,spd:55,sp:'puffer',d:'敲缸必看：原地膨胀成球'},
+yinyu:{n:'幽灵鱼',k:'Ꮚᵕ ᵕᏊ',c:'#cfc3ff',cat:'神秘',price:220,sz:1,spd:65,sp:'ghost',d:'时隐时现，存在感谜之微弱'},
+shayu:{n:'鲨鱼',k:'(▀̿Ĺ̯̿▀̿)',c:'#94a3b8',cat:'酷酷',price:260,sz:1.5,spd:65,sp:'shark',d:'气场两米八，路过小鱼全跑'},
+jingyu:{n:'鲸鱼',k:'( ´ ▽ ` )',c:'#7fc9ff',cat:'平静',price:320,sz:1.9,spd:40,sp:'whale',d:'缸里的巨无霸，温柔缓慢'},
+kulou:{n:'骷髅鱼',k:'☠(◔_◔)☠',c:'#d9d9d9',cat:'神秘',price:400,sz:1,spd:70,sp:'ghost',d:'深海来客，半透明漂浮'},
+longyu:{n:'龙鱼',k:'(°ꈊ°)乂',c:'#ff6f61',cat:'神秘',price:500,sz:1.3,spd:80,sp:'flame',d:'传说中的鱼，尾迹带火'}
+};
+const SP_KEYS=Object.keys(SPECIES);
+const CATS=['全部','开心','平静','恋爱','伤心','生气','酷酷','神秘','搞笑'];
+const NAMES=['泡泡','闪闪','团团','布丁','墨墨','小鲤','果冻','豆豆','米粒','海苔','丸子','咕噜','泡芙','曲奇','苏打','柚子','煤球','小蓝','阿麟','汽水'];
+const STAGES=[{n:'鱼苗',scale:.6,exp:0},{n:'少年',scale:.8,exp:45},{n:'成年',scale:1,exp:130},{n:'巨无霸',scale:1.3,exp:280}];
+
+/* ================= 画布 ================= */
+const canvas=$('tank'),ctx=canvas.getContext('2d');
+let W=0,H=0,WATER_Y=54,FLOOR=100,kBase=24;
+let weeds=[],decor={rocks:[],corals:[],specks:[]};
+function resize(){
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth;H=window.innerHeight;
+  canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  FLOOR=H-52;
+  kBase=clamp(Math.floor(Math.min(W,H)/30),16,32);
+  buildDecor();
+}
+function buildDecor(){
+  const n=Math.max(5,Math.round(W/95));weeds=[];
+  for(let i=0;i<n;i++)weeds.push({fx:.04+.92*(i+rand(.15,.85))/n,h:rand(46,110),ph:rand(0,6.28),seg:irand(5,8),hue:Math.random()<.18?1:0});
+  decor.rocks=[];decor.corals=[];decor.specks=[];
+  const rn=irand(3,5);for(let i=0;i<rn;i++)decor.rocks.push({x:rand(.05,.95)*W,w:irand(16,34),h:irand(8,16)});
+  const cn=irand(2,3);for(let i=0;i<cn;i++)decor.corals.push({x:rand(.08,.92)*W,h:irand(18,30)});
+  for(let i=0;i<Math.round(W/14);i++)decor.specks.push({x:rand(0,W),y:rand(FLOOR+8,H-8)});
+}
+window.addEventListener('resize',resize);
+
+/* ================= 游戏状态 ================= */
+let logged=false,token='',myName='';
+let fishes=[],visitors=[],pellets=[],bubbles=[],effects=[],floaters=[];
+let coins=60,firstTs=Date.now(),feedCount=0,selectedFish=null;
+let pointer={x:-999,y:-999,t:0,inside:false};
+const awayIds=new Set();          // 我家去串门的鱼
+const wsLog=[];                   // 串门事件记录（调试/验证用）
+
+/* ================= 鱼 ================= */
+class Fish{
+  constructor(sp,name,x,y){
+    this.id='f'+Date.now().toString(36)+Math.floor(Math.random()*1e6);
+    this.sp=sp;this.name=name||pick(NAMES);
+    this.x=x!==undefined?x:rand(W*.25,W*.75);
+    this.y=y!==undefined?y:rand(WATER_Y+80,FLOOR-60);
+    this.vx=rand(20,40)*(Math.random()<.5?-1:1);this.vy=rand(-8,8);
+    this.ph=rand(0,6.28);
+    this.sat=irand(55,85);this.exp=irand(0,20);this.born=Date.now();
+    this.state='wander';this.target=null;this.stateT=rand(1,3);
+    this.fleeT=0;this.inflateT=0;this.bubbleT=0;this.bubbleCd=rand(2,7);
+    this.away=false;this._st=0;
+    this.fx={dartCd:rand(1,3),dartT:0,zapCd:rand(2,5),zapT:0,heartCd:rand(2,5),noteCd:rand(2,5),tearCd:rand(1,3),
+             scareCd:rand(3,6),flameCd:0,spkCd:rand(1,4),bubCd:rand(1,4)};
+  }
+  spec(){return SPECIES[this.sp]}
+  stage(){let s=0;for(let i=0;i<STAGES.length;i++)if(this.exp>=STAGES[i].exp)s=i;return s}
+  fontPx(){return kBase*this.spec().sz*STAGES[this.stage()].scale*(this.sp==='hetun'&&this.inflateT>0?1.6:1)}
+  halfW(){return this.fontPx()*this.spec().k.length*.32+8}
+  update(dt){
+    if(this.away)return;
+    this.sat=clamp(this.sat-dt*100/420,0,100);
+    if(this.fleeT>0)this.fleeT-=dt;
+    if(this.inflateT>0)this.inflateT-=dt;
+    const spc=this.spec(),spBase=spc.spd;
+    let speed=spBase,tx=null,ty=null;
+    const isZen=spc.sp==='zen';
+
+    if(this.fleeT>0&&!isZen){
+      speed=spBase*2.6;tx=this.x+this.fleeDir*300;ty=this.y+this.fleeVy*200;this.state='flee';
+    }else{
+      const hungry=this.sat<55||spc.sp==='hungry';
+      let best=null,bd=spc.sp==='hungry'?999:380;
+      for(const p of pellets){const d=dist(this.x,this.y,p.x,p.y);if(d<bd){bd=d;best=p}}
+      if(best){
+        this.state='seek';speed=spBase*1.7;tx=best.x;ty=best.y;
+        if(dist(this.x+this.vx*0.15,this.y,best.x,best.y)<10+this.fontPx()*.4)this.eat(best);
+      }else if(spc.sp==='follow'&&pointer.inside){
+        this.state='curious';speed=spBase*.9;tx=pointer.x;ty=pointer.y;
+      }else if(spc.sp==='shy'&&pointer.inside&&dist(this.x,this.y,pointer.x,pointer.y)<130){
+        this.state='flee';speed=spBase*1.8;
+        const d=dist(this.x,this.y,pointer.x,pointer.y)||1;
+        tx=this.x+(this.x-pointer.x)/d*200;ty=this.y+(this.y-pointer.y)/d*160;
+      }else{
+        if(pointer.inside&&performance.now()-pointer.t>500&&dist(this.x,this.y,pointer.x,pointer.y)<170&&this.state!=='curious'&&Math.random()<.01)this.state='curious',this.stateT=2.2;
+        if(this.state==='curious'&&this.stateT>0){this.stateT-=dt;speed=spBase*.38;tx=pointer.x;ty=pointer.y}
+        else{
+          this.state='wander';this.stateT-=dt;
+          if(!this.target||this.stateT<=0){this.target={x:rand(W*.12,W*.88),y:spc.sp==='crab'?FLOOR-14:rand(WATER_Y+50,FLOOR-30)};this.stateT=rand(2.5,5.5)}
+          tx=this.target.x;ty=this.target.y;speed=spBase*(.45+.3*Math.sin(this.ph*.3));
+        }
+      }
+    }
+    /* 特性微调 */
+    if(spc.sp==='dart'){this.fx.dartCd-=dt;if(this.fx.dartCd<=0){this.fx.dartT=.45;this.fx.dartCd=rand(2,4)}if(this.fx.dartT>0){this.fx.dartT-=dt;speed=spBase*2.5}}
+    if(spc.sp==='robot'&&tx!==null){ // 先横后竖的直角走法
+      if(Math.abs(tx-this.x)>6){ty=this.y}else if(Math.abs(ty-this.y)>6){tx=this.x}
+    }
+    if(tx!==null){
+      const dx=tx-this.x,dy=ty-this.y,d=Math.hypot(dx,dy)||1;
+      const ax=dx/d*speed,ay=dy/d*speed*(spc.sp==='crab'?.05:.7);
+      this.vx+=(ax-this.vx)*Math.min(1,dt*2.2);
+      this.vy+=(ay-this.vy)*Math.min(1,dt*2.2);
+    }
+    const m=46;
+    if(this.x<m)this.vx+=dt*260;if(this.x>W-m)this.vx-=dt*260;
+    const topY=spc.sp==='crab'?FLOOR-40:WATER_Y+34;
+    if(this.y<topY)this.vy+=dt*220;
+    if(this.y>FLOOR-18)this.vy-=dt*220;
+    if(spc.sp==='xianyu')this.vy*=.9;
+    this.x=clamp(this.x+this.vx*dt,20,W-20);
+    this.y=clamp(this.y+this.vy*dt,WATER_Y+26,FLOOR-10);
+    if(spc.sp==='crab')this.y=FLOOR-14;
+    this.ph+=dt*(3.2+Math.hypot(this.vx,this.vy)/26);
+    /* 特性表现 */
+    this.runFx(dt);
+    /* 饥饿气泡 */
+    if(this.bubbleCd>0)this.bubbleCd-=dt;
+    else if(this.sat<28){this.bubbleT=2.4;this.bubbleCd=rand(5,9)}
+    if(this.bubbleT>0)this.bubbleT-=dt;
+    if(Math.random()<dt*(spc.sp==='bubble'?.35:.05))bubbles.push(new Bubble(this.x-this.halfW()*.4,this.y));
+  }
+  runFx(dt){
+    const f=this.fx,spc=this.spec();
+    if(spc.sp==='lightning'){f.zapCd-=dt;if(f.zapCd<=0){f.zapT=.3;f.zapCd=rand(3,6);sfx.zap();effects.push(new Zap(this.x,this.y))}if(f.zapT>0)f.zapT-=dt}
+    if(spc.sp==='hearts'&&f.heartCd<=0){f.heartCd=rand(3,6);effects.push(new TxtFx(this.x+rand(-10,10),this.y-this.fontPx()*.6,'♥','#ff8fb3'))}else f.heartCd-=dt;
+    if(spc.sp==='music'&&f.noteCd<=0){f.noteCd=rand(3,6);effects.push(new TxtFx(this.x+rand(-10,10),this.y-this.fontPx()*.6,'♪','#8ad6ff'))}else f.noteCd-=dt;
+    if(spc.sp==='tears'&&f.tearCd<=0){f.tearCd=rand(1.5,3);effects.push(new Tear(this.x+rand(-6,6),this.y+4))}else f.tearCd-=dt;
+    if((spc.sp==='sparkle')&&f.spkCd<=0){f.spkCd=rand(.8,2);effects.push(new Spark(this.x+rand(-20,20),this.y+rand(-12,12)))}else f.spkCd-=dt;
+    if(spc.sp==='flame'&&f.flameCd<=0){f.flameCd=.12;effects.push(new Spark(this.x-this.vx*.06,this.y+rand(-6,6),'#ff9f43'))}else f.flameCd-=dt;
+    if(spc.sp==='shark'&&f.scareCd<=0){f.scareCd=rand(4,7);
+      for(const o of fishes)if(o!==this&&!o.away&&dist(o.x,o.y,this.x,this.y)<120){
+        const d=dist(o.x,o.y,this.x,this.y)||1;o.fleeDir=Math.sign(o.x-this.x)||1;o.fleeVy=(o.y-this.y)/d;o.fleeT=.5;
+      }
+    }else if(spc.sp==='shark')f.scareCd-=dt;
+  }
+  eat(p){
+    p.dead=true;
+    const gain=this.spec().sp==='lucky'?2:1;
+    this.exp+=6;this.sat=clamp(this.sat+13,0,100);
+    coins+=gain;addFloat(p.x,p.y,'+'+gain,'#ffd166');
+    for(let i=0;i<6;i++)effects.push(new Spark(p.x,p.y));
+    sfx.eat();
+    const ns=this.stage();
+    if(ns>this._st){this._st=ns;coins+=10;sfx.levelup();
+      addFloat(this.x,this.y-30,this.name+' 长大啦！','#7ef0b0');
+      toast(this.name+' 成长为「'+STAGES[ns].n+'」！ +10 鱼粮币','gold');
+      for(let i=0;i<14;i++)effects.push(new Spark(this.x,this.y));
+      refreshHUD();
+    }
+    if(selectedFish===this)showCard(this);
+  }
+  draw(t){
+    if(this.away)return;
+    const spc=this.spec(),fs=this.fontPx();
+    const bob=Math.sin(this.ph*.7)*2.2;
+    let rot=Math.sin(this.ph)*.07+clamp(this.vx*.0006,-.12,.12);
+    if(spc.sp==='dance')rot+=Math.sin(this.ph*3)*.18;
+    if(spc.sp==='xianyu')rot=.3;
+    let jx=0,jy=0;
+    if(spc.sp==='tremble'){jx=rand(-1.6,1.6);jy=rand(-1.6,1.6)}
+    else if(spc.sp==='nervous'){jx=rand(-.7,.7);jy=rand(-.7,.7)}
+    let alpha=1;
+    if(spc.sp==='ghost')alpha=.45+.4*Math.sin(t*.001+this.ph);
+    if(spc.sp==='jelly')alpha=.72;
+    if(spc.sp==='sleep'&&Math.sin(t*.002+this.ph)>0)alpha=.92;
+    ctx.save();
+    ctx.translate(this.x+jx,this.y+bob+jy);
+    ctx.rotate(rot);
+    ctx.globalAlpha=alpha;
+    ctx.font='bold '+Math.round(fs)+'px "Segoe UI Symbol","Segoe UI","Microsoft YaHei",sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    if(spc.sp==='glow'){ctx.shadowColor=spc.c;ctx.shadowBlur=18}
+    ctx.lineWidth=Math.max(3,fs/7);ctx.lineJoin='round';
+    ctx.strokeStyle='rgba(2,10,24,.9)';
+    ctx.strokeText(spc.k,0,0);
+    ctx.fillStyle=spc.c;
+    ctx.fillText(spc.k,0,0);
+    ctx.restore();
+    /* 河豚膨胀感叹号 */
+    if(this.inflateT>0){
+      ctx.font='bold '+(fs*.7)+'px sans-serif';ctx.textAlign='center';
+      ctx.fillStyle='#ff8fa0';ctx.strokeStyle='#04101f';ctx.lineWidth=3;
+      ctx.strokeText('!',this.x,this.y-fs*.85);ctx.fillText('!',this.x,this.y-fs*.85);
+    }
+    /* 睡觉 zZ */
+    if(spc.sp==='sleep'&&Math.random()<.02)effects.push(new TxtFx(this.x+fs*.3,this.y-fs*.5,'zZ','#b3c9e0'));
+    /* 饥饿想法气泡 */
+    if(this.bubbleT>0&&this.sat<30){
+      const bx=this.x,by=this.y-fs*.75-14;
+      ctx.globalAlpha=clamp(this.bubbleT,0,1);
+      ctx.fillStyle='#062038';ctx.strokeStyle='#3ba0d8';ctx.lineWidth=2;
+      ctx.fillRect(bx-13,by-11,26,20);ctx.strokeRect(bx-13,by-11,26,20);
+      ctx.fillRect(bx-2,by+9,4,4);ctx.fillRect(bx-6,by+13,3,3);
+      ctx.fillStyle='#fbbf24';ctx.fillRect(bx-3,by-6,6,6);
+      ctx.fillStyle='#b45309';ctx.fillRect(bx-1,by-4,2,2);
+      ctx.globalAlpha=1;
+    }
+  }
+}
+/* 邻居家的访客鱼（仅视觉，不吃金币经验） */
+class VisitorFish{
+  constructor(fish,owner,visitId){
+    this.sp=fish.sp;this.name=fish.name;this.owner=owner;this.visitId=visitId;
+    this.x=rand(W*.2,W*.8);this.y=rand(WATER_Y+80,FLOOR-60);
+    this.vx=rand(-30,30);this.vy=0;this.ph=rand(0,6.28);
+    this.target=null;this.stateT=0;this.fleeT=0;this.inflateT=0;this.fx={};this.sat=80;this.exp=0;this._st=1;
+    this.isVisitor=true;
+  }
+  spec(){return SPECIES[this.sp]}
+  stage(){return 1}
+  fontPx(){return kBase*this.spec().sz}
+  halfW(){return this.fontPx()*this.spec().k.length*.32+8}
+  update(dt){
+    this.ph+=dt*3;
+    let speed=this.spec().spd,tx,ty;
+    let best=null,bd=380;
+    for(const p of pellets){const d=dist(this.x,this.y,p.x,p.y);if(d<bd){bd=d;best=p}}
+    if(best&&Math.random()<.9){speed*=1.7;tx=best.x;ty=best.y;
+      if(dist(this.x,this.y,best.x,best.y)<14){best.dead=true;for(let i=0;i<4;i++)effects.push(new Spark(best.x,best.y))}
+    }else{
+      this.stateT-=dt;
+      if(!this.target||this.stateT<=0){this.target={x:rand(W*.12,W*.88),y:rand(WATER_Y+50,FLOOR-30)};this.stateT=rand(2,4)}
+      tx=this.target.x;ty=this.target.y;speed*=.5;
+    }
+    const dx=tx-this.x,dy=ty-this.y,d=Math.hypot(dx,dy)||1;
+    this.vx+=(dx/d*speed-this.vx)*Math.min(1,dt*2);
+    this.vy+=(dy/d*speed*.7-this.vy)*Math.min(1,dt*2);
+    const m=46;
+    if(this.x<m)this.vx+=dt*260;if(this.x>W-m)this.vx-=dt*260;
+    if(this.y<WATER_Y+34)this.vy+=dt*220;if(this.y>FLOOR-18)this.vy-=dt*220;
+    this.x=clamp(this.x+this.vx*dt,20,W-20);
+    this.y=clamp(this.y+this.vy*dt,WATER_Y+26,FLOOR-10);
+  }
+  draw(t){
+    const spc=this.spec(),fs=this.fontPx();
+    ctx.save();
+    ctx.translate(this.x,this.y+Math.sin(this.ph*.7)*2.2);
+    ctx.rotate(Math.sin(this.ph)*.07);
+    ctx.globalAlpha=.92;
+    ctx.font='bold '+Math.round(fs)+'px "Segoe UI Symbol","Segoe UI","Microsoft YaHei",sans-serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.lineWidth=Math.max(3,fs/7);ctx.lineJoin='round';
+    ctx.strokeStyle='rgba(2,10,24,.9)';ctx.strokeText(spc.k,0,0);
+    ctx.fillStyle=spc.c;ctx.fillText(spc.k,0,0);
+    ctx.restore();
+    /* 邻居标签 */
+    ctx.font='bold 11px "Microsoft YaHei",sans-serif';ctx.textAlign='center';
+    ctx.fillStyle='#04101f';ctx.fillText('邻居家·'+this.name,this.x+1,this.y+fs*.75+1);
+    ctx.fillStyle='#ffd7a8';ctx.fillText('邻居家·'+this.name,this.x,this.y+fs*.75);
+  }
+}
+class Bubble{
+  constructor(x,y){this.x=x;this.y=y;this.r=irand(2,5);this.ph=rand(0,6.28);this.dead=false}
+  update(dt){this.y-=dt*(26+this.r*7);this.x+=Math.sin(this.ph+=dt*3)*.4;if(this.y<WATER_Y+6)this.dead=true}
+  draw(){ctx.globalAlpha=.55;ctx.fillStyle='#9be8ff';const r=this.r;
+    ctx.fillRect(this.x-r,this.y-r*.4,r*2,r*.8);ctx.fillRect(this.x-r*.4,this.y-r,r*.8,r*2);
+    ctx.globalAlpha=.9;ctx.fillStyle='#e8fbff';ctx.fillRect(this.x-r*.4,this.y-r*.6,Math.max(1,r*.5),Math.max(1,r*.5));
+    ctx.globalAlpha=1}
+}
+class Spark{
+  constructor(x,y,c){this.x=x;this.y=y;this.vx=rand(-60,60);this.vy=rand(-90,-10);this.life=rand(.35,.7);this.t=0;this.c=c||pick(['#fff','#38e1ff','#7ef0b0','#ffd166'])}
+  update(dt){this.t+=dt;this.x+=this.vx*dt;this.y+=this.vy*dt;if(this.t>=this.life)this.dead=true}
+  draw(){const a=1-this.t/this.life,s=irand(2,4);ctx.globalAlpha=a;ctx.fillStyle=this.c;
+    ctx.fillRect(this.x-s/2,this.y-1,s,2);ctx.fillRect(this.x-1,this.y-s/2,2,s);ctx.globalAlpha=1}
+}
+class TxtFx{ /* 上升文字粒子：♥ ♪ zZ */
+  constructor(x,y,ch,c){this.x=x;this.y=y;this.ch=ch;this.c=c;this.t=0;this.life=1.6;this.sw=rand(0,6)}
+  update(dt){this.t+=dt;this.y-=dt*26;this.x+=Math.sin(this.sw+=dt*3)*.5;if(this.t>=this.life)this.dead=true}
+  draw(){ctx.globalAlpha=(1-this.t/this.life)*.95;ctx.font='bold 14px sans-serif';ctx.textAlign='center';
+    ctx.fillStyle=this.c;ctx.fillText(this.ch,this.x,this.y);ctx.globalAlpha=1}
+}
+class Tear{
+  constructor(x,y){this.x=x;this.y=y;this.t=0;this.life=1.4}
+  update(dt){this.t+=dt;this.y+=dt*36;this.x+=Math.sin(this.t*6)*.6;if(this.t>=this.life)this.dead=true}
+  draw(){ctx.globalAlpha=(1-this.t/this.life)*.85;ctx.fillStyle='#6fa8ff';ctx.fillRect(this.x-2,this.y,4,6);ctx.globalAlpha=1}
+}
+class Zap{ /* 闪电弧 */
+  constructor(x,y){this.x=x;this.y=y;this.t=0;this.life=.32;
+    this.pts=[];let px=x,py=y;const ang=rand(0,6.28);
+    for(let i=0;i<4;i++){px+=Math.cos(ang)*rand(12,26)+rand(-8,8);py+=Math.sin(ang)*rand(12,26)+rand(-8,8);this.pts.push([px,py])}}
+  update(dt){this.t+=dt;if(this.t>=this.life)this.dead=true}
+  draw(){ctx.globalAlpha=(1-this.t/this.life);ctx.strokeStyle='#7df9ff';ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(this.x,this.y);
+    for(const p of this.pts)ctx.lineTo(p[0],p[1]);ctx.stroke();
+    ctx.fillStyle='#d8fbff';ctx.fillRect(this.x-2,this.y-2,4,4);ctx.globalAlpha=1}
+}
+class Ripple{
+  constructor(x,y){this.x=x;this.y=y;this.t=0;this.dead=false}
+  update(dt){this.t+=dt;if(this.t>.8)this.dead=true}
+  draw(){const p=this.t/.8,r=6+p*56;ctx.globalAlpha=(1-p)*.6;ctx.strokeStyle='#9be8ff';ctx.lineWidth=2;
+    ctx.strokeRect(this.x-r,this.y-r*.55,r*2,r*1.1);ctx.globalAlpha=1}
+}
+function addFloat(x,y,text,color){floaters.push({x,y,text,color:color||'#fff',t:0})}
+function updateFloaters(dt){floaters=floaters.filter(f=>(f.t+=dt)<1);for(const f of floaters)f.y-=dt*34}
+function drawFloaters(){
+  ctx.font='bold 13px "Microsoft YaHei",sans-serif';ctx.textAlign='center';
+  for(const f of floaters){ctx.globalAlpha=1-f.t;ctx.fillStyle='#04101f';ctx.fillText(f.text,f.x+1,f.y+1);
+    ctx.fillStyle=f.color;ctx.fillText(f.text,f.x,f.y)}
+  ctx.globalAlpha=1;ctx.textAlign='left';
+}
+
+/* ================= 交互 ================= */
+let lastTap=0,lastTapX=0,lastTapY=0;
+function pointerDown(x,y){
+  ac();
+  const now=performance.now();
+  const dbl=now-lastTap<320&&dist(x,y,lastTapX,lastTapY)<60;
+  lastTap=now;lastTapX=x;lastTapY=y;
+  if(dbl){knock(x,y);return}
+  let hit=null,hd=40;
+  for(const f of fishes){if(f.away)continue;const d=dist(x,y,f.x,f.y);if(d<hd+f.fontPx()*.4){hd=d;hit=f}}
+  if(hit){showCard(hit);return}
+  hideCard();
+  if(y>WATER_Y+10){
+    if(pellets.length>28)pellets.splice(0,pellets.length-28);
+    for(let i=0;i<3;i++)pellets.push({x:x+rand(-16,16),y:y+rand(-8,8),vy:rand(14,26),ph:rand(0,6.28),life:22,dead:false});
+    effects.push(new Ripple(x,y));feedCount++;sfx.feed();
+  }
+}
+function knock(x,y){
+  effects.push(new Ripple(x,y));effects.push(new Ripple(x,y));
+  addFloat(x,y-14,'咚!','#ff8fa0');sfx.knock();
+  $('stage').classList.remove('shake');void $('stage').offsetWidth;$('stage').classList.add('shake');
+  for(const f of fishes){
+    if(f.away)continue;
+    if(f.spec().sp==='zen')continue;               // 佛系/乌龟：不为所动
+    const d=dist(x,y,f.x,f.y)||1;
+    f.fleeDir=Math.sign(f.x-x)||1;f.fleeVy=(f.y-y)/d;f.fleeT=rand(.8,1.4);
+    if(f.sp==='hetun')f.inflateT=2.6;              // 河豚：膨胀！
+    if(f.spec().sp==='tremble')f.fleeT=rand(1.6,2.2);
+  }
+  for(const v of visitors){const d=dist(x,y,v.x,v.y)||1;v.vx=Math.sign(v.x-x)*220;v.vy=(v.y-y)/d*160}
+  hideCard();
+}
+canvas.addEventListener('pointerdown',e=>{
+  const r=canvas.getBoundingClientRect();
+  pointerDown(e.clientX-r.left,e.clientY-r.top);
+});
+canvas.addEventListener('pointermove',e=>{
+  const r=canvas.getBoundingClientRect();
+  pointer.x=e.clientX-r.left;pointer.y=e.clientY-r.top;pointer.t=performance.now();pointer.inside=true;
+});
+canvas.addEventListener('pointerleave',()=>{pointer.inside=false});
+
+/* ================= HUD / UI ================= */
+function days(){return Math.floor((Date.now()-firstTs)/864e5)+1}
+function refreshHUD(){
+  $('stFish').textContent=fishes.length;
+  $('stCoin').textContent=coins;
+  $('stDay').textContent='第'+days()+'天';
+  $('shopCoin').textContent=coins;
+}
+function toast(msg,cls){
+  const t=document.createElement('div');t.className='toast'+(cls?' '+cls:'');t.textContent=msg;
+  $('toasts').appendChild(t);
+  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),320)},2800);
+  while($('toasts').children.length>3)$('toasts').firstChild.remove();
+}
+function showCard(f){
+  selectedFish=f;
+  $('fishcard').classList.add('show');
+  $('fcName').textContent=f.name;
+  const spc=f.spec();
+  $('fcSub').textContent=spc.n+' · '+spc.cat+'系 · '+STAGES[f.stage()].n;
+  const pct=Math.round(f.sat);
+  $('fcSatT').textContent=pct+'%';
+  const bar=$('fcSat');bar.style.transform='scaleX('+(pct/100)+')';
+  bar.className='fill'+(pct>60?'':pct>30?' mid':' low');
+  const st=f.stage();
+  const cur=f.exp-STAGES[st].exp,next=st<3?STAGES[st+1].exp-STAGES[st].exp:cur||1;
+  $('fcExpT').textContent=st<3?(cur+'/'+next):'MAX';
+  $('fcExp').style.transform='scaleX('+clamp(st<3?cur/next:1,0,1)+')';
+  $('fcBorn').textContent='已陪伴 '+(Math.floor((Date.now()-f.born)/864e5)+1)+' 天';
+  $('fcInput').value=f.name;
+  let armed=false;
+  $('releaseBtn').textContent='放生（返还 '+Math.floor(spc.price/2)+' 币）';
+  $('releaseBtn').onclick=()=>{
+    if(!armed){armed=true;$('releaseBtn').textContent='再点一次确认放生';
+      setTimeout(()=>{if(selectedFish)$('releaseBtn').textContent='放生（返还 '+Math.floor(selectedFish.spec().price/2)+' 币）'},2600);return}
+    const idx=fishes.indexOf(f);if(idx>=0)fishes.splice(idx,1);
+    coins+=Math.floor(spc.price/2);
+    sfx.release();toast(f.name+' 回赛博大海了 · +'+Math.floor(spc.price/2)+' 鱼粮币');
+    for(let i=0;i<10;i++)effects.push(new Spark(f.x,f.y));
+    hideCard();refreshHUD();saveNow();
+  };
+}
+function hideCard(){$('fishcard').classList.remove('show');selectedFish=null}
+$('fcSave').onclick=()=>{
+  if(!selectedFish)return;
+  const v=$('fcInput').value.trim();
+  if(v){selectedFish.name=v.slice(0,8);toast('改名成功：'+selectedFish.name);showCard(selectedFish);saveNow()}
+};
+/* ---------- 商店 ---------- */
+let shopCat='全部';
+function openShop(){renderShop();$('shopwrap').classList.add('show')}
+function closeShop(){$('shopwrap').classList.remove('show')}
+$('shopBtn').onclick=openShop;
+$('shopClose').onclick=closeShop;
+$('shopwrap').addEventListener('pointerdown',e=>{if(e.target===$('shopwrap'))closeShop()});
+function renderShop(){
+  refreshHUD();
+  const fl=$('filters');fl.innerHTML='';
+  for(const c of CATS){
+    const b=document.createElement('button');b.className='fchip'+(c===shopCat?' sel':'');b.textContent=c;
+    b.onclick=()=>{shopCat=c;renderShop()};fl.appendChild(b);
+  }
+  const list=$('shoplist');list.innerHTML='';
+  const keys=SP_KEYS.filter(k=>shopCat==='全部'||SPECIES[k].cat===shopCat);
+  for(const key of keys){
+    const sp=SPECIES[key];
+    const row=document.createElement('div');row.className='srow';
+    const kj=document.createElement('div');kj.className='kj';kj.style.color=sp.c;kj.textContent=sp.k;
+    const info=document.createElement('div');info.className='info';
+    info.innerHTML='<div class="nm">'+sp.n+'<em>'+sp.cat+'系</em></div><div class="ds">'+sp.d+'</div>';
+    const buy=document.createElement('div');buy.className='buy';
+    const can=coins>=sp.price&&fishes.length<15;
+    buy.innerHTML='<div class="pr">'+sp.price+' 币</div>';
+    const btn=document.createElement('button');btn.className='pxbtn small';
+    btn.textContent=fishes.length>=15?'缸满了':(can?'入住':'币不够');
+    btn.disabled=!can;
+    btn.onclick=()=>buyFish(key);
+    buy.appendChild(btn);
+    row.appendChild(kj);row.appendChild(info);row.appendChild(buy);
+    list.appendChild(row);
+  }
+}
+function buyFish(key){
+  const sp=SPECIES[key];
+  if(coins<sp.price||fishes.length>=15)return;
+  coins-=sp.price;
+  const used=fishes.map(f=>f.name);
+  const f=new Fish(key,pick(NAMES.filter(n=>!used.includes(n)))||pick(NAMES),W/2+rand(-60,60),H/2);
+  fishes.push(f);
+  for(let i=0;i<12;i++)effects.push(new Spark(f.x,f.y));
+  addFloat(f.x,f.y-34,'新成员！','#38e1ff');
+  sfx.buy();toast('「'+f.name+'」（'+sp.n+'）入住你的鱼缸！','gold');
+  renderShop();refreshHUD();saveNow();
+}
+$('knockBtn').onclick=()=>knock(W/2+rand(-80,80),H/2+rand(-40,40));
+$('muteBtn').onclick=()=>{muted=!muted;$('muteBtn').textContent='音效:'+(muted?'关':'开');if(!muted)sfx.coin();saveNow()};
+
+/* ================= 场景绘制 ================= */
+function drawBackground(t){
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#031024');g.addColorStop(.45,'#062b52');g.addColorStop(1,'#0a3a62');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  for(let i=0;i<3;i++){
+    const bx=W*(.22+.28*i)+Math.sin(t*.00012+i*2)*40;
+    ctx.globalAlpha=.045;ctx.fillStyle='#9be8ff';
+    ctx.beginPath();ctx.moveTo(bx,0);ctx.lineTo(bx+70,0);
+    ctx.lineTo(bx+240,H);ctx.lineTo(bx+90,H);ctx.closePath();ctx.fill();ctx.globalAlpha=1;
+  }
+  ctx.fillStyle='#020817';ctx.fillRect(0,0,W,WATER_Y-4);
+  for(let x=0;x<W;x+=6){
+    const wy=WATER_Y+Math.sin(x*.045+t*.0023)*3;
+    ctx.fillStyle='#0b3a5b';ctx.fillRect(x,wy-3,6,6);
+    ctx.fillStyle='rgba(56,225,255,.5)';ctx.fillRect(x,wy-3,6,1);
+  }
+}
+function drawFloor(){
+  ctx.fillStyle='#231b12';ctx.fillRect(0,FLOOR,W,H-FLOOR);
+  ctx.fillStyle='#3b2f20';ctx.fillRect(0,FLOOR,W,6);
+  ctx.fillStyle='#4d3d2a';
+  for(const s of decor.specks)ctx.fillRect(s.x,s.y,2,2);
+  for(const r of decor.rocks){
+    ctx.fillStyle='#1d2b45';ctx.fillRect(r.x-r.w/2,FLOOR-r.h,r.w,r.h);
+    ctx.fillStyle='#31486b';ctx.fillRect(r.x-r.w/2+3,FLOOR-r.h+2,r.w-6,4);
+  }
+  for(const c of decor.corals){
+    ctx.fillStyle='#c2417e';
+    ctx.fillRect(c.x-2,FLOOR-c.h,4,c.h);
+    ctx.fillRect(c.x-12,FLOOR-c.h*.7,10,3);ctx.fillRect(c.x-12,FLOOR-c.h*.7-6,3,6);
+    ctx.fillRect(c.x+2,FLOOR-c.h*.55,10,3);ctx.fillRect(c.x+9,FLOOR-c.h*.55-7,3,7);
+    ctx.fillStyle='#f472b6';ctx.fillRect(c.x-1,FLOOR-c.h,2,3);
+  }
+}
+function drawWeeds(front,t){
+  for(const w of weeds){
+    if(front!==(w.fx>.3&&w.fx<.75))continue;
+    const x=w.fx*W,segH=w.h/w.seg;
+    for(let i=0;i<w.seg;i++){
+      const sway=Math.sin(t*.0011+w.ph+i*.55)*(i*1.4);
+      const col=i===w.seg-1?(w.hue?'#2dd4bf':'#34d399'):(w.hue?'rgba(13,148,136,.9)':'rgba(22,163,74,.9)');
+      ctx.fillStyle=col;
+      const ww=4-(i===0?0:1);
+      ctx.fillRect(x+sway-ww/2,FLOOR-(i+1)*segH,ww,segH+1);
+    }
+  }
+}
+
+/* ================= 服务器 API & WebSocket ================= */
+const API={
+  async req(path,method,body){
+    const res=await fetch(path,{method:method||'GET',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+      body:body?JSON.stringify(body):undefined});
+    let data=null;try{data=await res.json()}catch(e){}
+    if(!res.ok)throw new Error((data&&data.error)||('请求失败 '+res.status));
+    return data;
+  }
+};
+let ws=null,wsTimer=null;
+function connectWS(){
+  if(!logged)return;
+  try{if(ws){ws.onclose=null;ws.close()}}catch(e){}
+  const proto=location.protocol==='https:'?'wss':'ws';
+  ws=new WebSocket(proto+'://'+location.host+'/ws?token='+encodeURIComponent(token));
+  ws.onmessage=e=>{
+    let m;try{m=JSON.parse(e.data)}catch(err){return}
+    wsLog.push(m);if(wsLog.length>40)wsLog.shift();
+    handleWs(m);
+  };
+  ws.onclose=()=>{if(logged){wsTimer=setTimeout(connectWS,3000)}};
+  ws.onerror=()=>{};
+}
+function handleWs(m){
+  if(m.type==='presence'){
+    $('stNeighbor').textContent=m.count;
+    $('stNeighborChip').title=m.count?('同一网络在线：'+m.names.join('、')):'同一网络暂无其他鱼友';
+    if(m.count>0&&!handleWs.seen){handleWs.seen=true;toast('同一网络有 '+m.count+' 位鱼友在线，鱼儿可能互相串门','pink')}
+  }
+  else if(m.type==='visit-in'){
+    visitors.push(new VisitorFish(m.fish,m.owner,m.visitId));
+    sfx.visit();
+    toast('「'+m.fish.name+'」从 '+m.owner+' 的鱼缸游过来做客啦','pink');
+  }
+  else if(m.type==='visit-end'){
+    const i=visitors.findIndex(v=>v.visitId===m.visitId);
+    if(i>=0){const v=visitors[i];visitors.splice(i,1);
+      for(let j=0;j<8;j++)effects.push(new Spark(v.x,v.y))}
+    toast(m.reason==='owner-left'
+      ? m.owner+' 离开了，「'+m.fishName+'」回家了'
+      : '「'+m.fishName+'」游回 '+m.owner+' 家了');
+  }
+  else if(m.type==='visit-out'){
+    awayIds.add(m.fishId);
+    const f=fishes.find(x=>x.id===m.fishId);
+    if(f)f.away=true;
+    toast('你的「'+m.fishName+'」游去 '+m.host+' 家串门了','pink');
+    refreshHUD();
+  }
+  else if(m.type==='visit-return'){
+    awayIds.delete(m.fishId||'');
+    const f=fishes.find(x=>x.id===m.fishId);
+    if(f)f.away=false;
+    toast('「'+m.fishName+'」串门回来了'+(m.reason==='host-left'?'（主人离开了）':''));
+    refreshHUD();
+  }
+}
+/* 定期同步 + 即时保存 */
+function saveNow(){
+  if(!logged)return;
+  API.req('/api/state','POST',{
+    coins,fishes:fishes.map(f=>({id:f.id,sp:f.sp,name:f.name,exp:Math.round(f.exp),sat:Math.round(f.sat),born:f.born})),
+    feedCount,muted
+  }).catch(()=>{});
+}
+setInterval(()=>{if(logged)saveNow()},10000);
+
+/* ================= 登录 / 注册 ================= */
+let mode='login';
+$('tabLogin').onclick=()=>{mode='login';$('tabLogin').classList.add('sel');$('tabReg').classList.remove('sel');$('loginSubmit').textContent='进入鱼缸'};
+$('tabReg').onclick=()=>{mode='reg';$('tabReg').classList.add('sel');$('tabLogin').classList.remove('sel');$('loginSubmit').textContent='注册并进入'};
+function loginError(msg){
+  const e=$('loginErr');e.textContent=msg;e.style.display=msg?'block':'none';
+}
+$('loginSubmit').onclick=async()=>{
+  loginError('');
+  const username=$('inUser').value.trim(),phone=$('inPhone').value.trim(),password=$('inPass').value;
+  if(!username||!phone||!password)return loginError('请填写用户名、手机号和密码');
+  $('loginSubmit').disabled=true;
+  try{
+    const data=await API.req(mode==='login'?'/api/login':'/api/register','POST',{username,phone,password});
+    token=data.token;myName=data.user.username;
+    localStorage.setItem('ydb_token',token);
+    startGame(data.state,data.user);
+  }catch(err){loginError(err.message)}
+  $('loginSubmit').disabled=false;
+};
+$('inPass').addEventListener('keydown',e=>{if(e.key==='Enter')$('loginSubmit').click()});
+$('logoutBtn').onclick=async()=>{
+  saveNow();
+  await API.req('/api/logout','POST').catch(()=>{});
+  localStorage.removeItem('ydb_token');
+  logged=false;token='';myName='';
+  try{if(ws){ws.onclose=null;ws.close()}}catch(e){}
+  clearTimeout(wsTimer);
+  fishes=[];visitors=[];awayIds.clear();
+  spawnDemo();
+  $('hud').classList.add('hidden');
+  $('login').classList.remove('hide');
+  $('inPass').value='';
+};
+
+/* ================= 游戏启动 ================= */
+function applyState(state){
+  coins=state.coins??60;firstTs=state.firstTs||Date.now();
+  feedCount=state.feedCount||0;muted=!!state.muted;
+  const offH=clamp((Date.now()-(state.lastTs||Date.now()))/3.6e6,0,240);
+  fishes=(state.fishes||[]).filter(f=>SPECIES[f.sp]).map(f=>{
+    const fish=new Fish(f.sp,f.name);
+    fish.id=f.id||fish.id;fish.exp=f.exp||0;
+    fish.sat=clamp((f.sat??70)-offH*7,5,100);
+    fish.born=f.born||Date.now();fish._st=fish.stage();
+    return fish;
+  }).slice(0,15);
+}
+function startGame(state,user){
+  logged=true;
+  applyState(state);
+  visitors=[];awayIds.clear();
+  $('login').classList.add('hide');
+  $('hud').classList.remove('hidden');
+  $('muteBtn').textContent='音效:'+(muted?'关':'开');
+  refreshHUD();
+  connectWS();
+  const isNew=Date.now()-firstTs<120000;
+  if(isNew){
+    setTimeout(()=>toast('欢迎入住，'+user.username+'！送你两条鱼苗和 60 鱼粮币','gold'),400);
+    setTimeout(()=>toast('点击水面撒鱼粮，双击屏幕敲鱼缸'),2900);
+    setTimeout(()=>toast('商店里有 50 种颜文字鱼等你解锁'),5400);
+    setTimeout(()=>toast('同一网络的小伙伴同时在线，鱼儿还会互相串门'),7900);
+  }else{
+    setTimeout(()=>toast(user.username+' 回来了，鱼儿们想你啦 · 已陪伴 '+days()+' 天','gold'),400);
+  }
+}
+/* 登录页背景的展示鱼 */
+function spawnDemo(){
+  fishes=SP_KEYS.slice().sort(()=>Math.random()-.5).slice(0,6).map(k=>new Fish(k,pick(NAMES)));
+}
+spawnDemo();
+
+/* ================= 主循环 ================= */
+let coinTimer=0;
+function loop(t){
+  const dt=Math.min(.05,(t-(loop.last||t))/1000);loop.last=t;
+  for(const f of fishes)f.update(dt);
+  for(const v of visitors)v.update(dt);
+  for(const p of pellets){
+    p.ph+=dt*3;p.y+=p.vy*dt;p.x+=Math.sin(p.ph)*.3;
+    if(p.y>FLOOR-5)p.y=FLOOR-5;
+    if((p.life-=dt)<=0)p.dead=true;
+  }
+  pellets=pellets.filter(p=>!p.dead);
+  bubbles=bubbles.filter(b=>!b.dead&&b.y>WATER_Y);
+  for(const b of bubbles)b.update(dt);
+  if(Math.random()<dt*.5)bubbles.push(new Bubble(rand(0,W),FLOOR-rand(0,20)));
+  for(const e of effects)e.update(dt);
+  effects=effects.filter(e=>!e.dead);
+  updateFloaters(dt);
+  if(logged){
+    coinTimer+=dt;
+    if(coinTimer>=20){coinTimer=0;coins++;refreshHUD()}
+  }
+  if(selectedFish)showCard(selectedFish);
+
+  drawBackground(t);
+  drawWeeds(false,t);
+  for(const b of bubbles)b.draw();
+  for(const p of pellets){
+    ctx.globalAlpha=p.life<3?p.life/3:1;
+    ctx.fillStyle='#b45309';ctx.fillRect(p.x-3,p.y-3,6,6);
+    ctx.fillStyle='#fbbf24';ctx.fillRect(p.x-2,p.y-2,4,4);
+    ctx.globalAlpha=1;
+  }
+  const sorted=[...fishes].sort((a,b)=>(a.away?0:a.fontPx())-(b.away?0:b.fontPx()));
+  for(const f of sorted)f.draw(t);
+  for(const v of visitors)v.draw(t);
+  drawWeeds(true,t);
+  drawFloor();
+  for(const e of effects)e.draw();
+  drawFloaters();
+  if(logged&&pointer.inside){
+    for(const f of fishes){
+      if(f.away)continue;
+      if(dist(pointer.x,pointer.y,f.x,f.y)<26+f.fontPx()*.4){
+        ctx.font='bold 12px "Microsoft YaHei",sans-serif';ctx.textAlign='center';
+        ctx.fillStyle='#04101f';ctx.fillText(f.name,f.x+1,f.y-f.fontPx()*.75+1);
+        ctx.fillStyle='#aee9ff';ctx.fillText(f.name,f.x,f.y-f.fontPx()*.75);
+        ctx.textAlign='left';break;
+      }
+    }
+  }
+  requestAnimationFrame(loop);
+}
+
+/* ================= 初始化 ================= */
+async function init(){
+  resize();
+  const saved=localStorage.getItem('ydb_token');
+  if(saved){
+    token=saved;
+    try{
+      const data=await API.req('/api/state');
+      startGame(data.state,data.user);
+      return;
+    }catch(e){
+      if(e.message==='未登录'||e.message.indexOf('401')>=0){localStorage.removeItem('ydb_token');token=''}
+      else{loginError('无法连接本地服务器：'+e.message)}
+    }
+  }
+}
+init();
+requestAnimationFrame(loop);
+window.addEventListener('beforeunload',()=>{if(logged)saveNow()});
+</script>
+</body>
+</html>

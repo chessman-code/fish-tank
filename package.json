@@ -1,0 +1,13 @@
+{
+  "name": "fish-tank",
+  "version": "2.0.0",
+  "description": "养的鱼不一样 - 颜文字赛博鱼缸（登录 + 同网络串门）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  }
+}
